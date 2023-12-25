@@ -11,7 +11,7 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 Servo myservo;  // create servo object to control a servo
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
-const int irSensorPins[] = {2, 3, 4, 7}; 
+const int irSensorPins[] = {2, 3, 4, 6, 7}; 
 
 void setup() {
   Serial.begin(9600);
@@ -27,8 +27,8 @@ void setup() {
 }
 
 void loop() {
-  int irStatus1 = digitalRead(irSensorPins[3]);
-  int irStatus2 = digitalRead(irSensorPins[2]);
+  int irStatus1 = digitalRead(irSensorPins[4]);
+  int irStatus2 = digitalRead(irSensorPins[3]);
 
   if (irStatus1 == LOW) {
     // IR Sensor 1 detects a vehicle
@@ -40,6 +40,7 @@ void loop() {
       Serial.println(rfid+ ",isEntering");
       delay(5000);  // Add a delay to avoid reading the same card multiple times
     }
+    delay(5000);
   }
 
   else if (irStatus2 == LOW) {
@@ -52,6 +53,7 @@ void loop() {
       Serial.println(rfid + ",isExiting");
       delay(5000);  // Add a delay to avoid reading the same card multiple times
     }
+    delay(5000);
   }
 
   delay(1000);

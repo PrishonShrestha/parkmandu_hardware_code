@@ -17,7 +17,6 @@ total_space = 3
 occupied_space = 0
 free_space = 0
 
-
 def process_data(data):
     
     occupied_slot_count_and_update()
@@ -36,8 +35,7 @@ def process_data(data):
                 print("Parking full")
 
         elif status == "isExiting":
-            update_parking_status(rfid)
-            decrease_occupied_slot()
+            update_exiting_vehicle(rfid)
         else:
             print("Error")
     else:
@@ -54,7 +52,7 @@ def check_and_update_firestore(rfid):
         # RFID exists, perform actions
         open_gate()
         # increase_occupied_slot()
-        enter_vehicle_detail(rfid)
+        vehicle_entry(rfid)
         occupied_slot_count_and_update()
         print("RFID {} is registered. Access granted.".format(rfid))
     else:
@@ -69,7 +67,7 @@ def occupied_slot_count_and_update():
     global total_space
     global occupied_space
     global free_space
-    slot_ref = db.collection('parking_info').document('79yuoUXhcRdMJ32F3yyp').collection('vechile_details').where('status', '==', 'incomplete').stream()
+    slot_ref = db.collection('parking_info').document('79yuoUXhcRdMJ32F3yyp').collection('vehicle_details').where('status', '==', 'incomplete').stream()
     # Count the number of matching documents
     count = len(list(slot_ref))
     print(f'number of occupied slots {count}')
@@ -86,39 +84,10 @@ def occupied_slot_count_and_update():
     })
 
 
-
-def increase_occupied_slot():
-    # Assuming you have a Firestore document for slot counts
-    slot_doc_ref = db.collection('parkings').document('79yuoUXhcRdMJ32F3yyp')
-    global occupied_space
-    # Atomically increment the occupied slot count by 1
-    # slot_doc_ref.update({'occupiedslots': firestore.Increment(1)})
-    # occupied_space = occupied_space+1,
-    print(f"Occupied slots: {occupied_space}")
-    # free_space = total_space-occupied_space
-    # slot_doc_ref.update({
-    #     'occupiedslots': occupied_space, 
-    #     'availableslots': free_space,
-    #     })
-    
-def decrease_occupied_slot():
-    # Assuming you have a Firestore document for slot counts
-    slot_doc_ref = db.collection('parkings').document('79yuoUXhcRdMJ32F3yyp')
-
-    # Atomically decrement the occupied slot count by 1
-    # slot_doc_ref.update({'occupiedslots': firestore.Increment(-1)})
-    occupied_space-=1,    
-    print("Occupied slots: "+occupied_space)
-    free_space = total_space-occupied_space
-    slot_doc_ref.update({
-        'occupiedslots': occupied_space, 
-        'availableslots': free_space,
-        })
-
-def enter_vehicle_detail(rfid):
+def vehicle_entry(rfid):
     # Assuming you have a Firestore collection for vehicle details
     # parking_info = db.collection('parking_info')
-    parking_info = db.collection('parking_info').document('79yuoUXhcRdMJ32F3yyp').collection('vechile_details')
+    parking_info = db.collection('parking_info').document('79yuoUXhcRdMJ32F3yyp').collection('vehicle_details')
 
     # Add a document with vehicle details
     parking_info.add({
@@ -130,17 +99,31 @@ def enter_vehicle_detail(rfid):
     })
     print("Vehicle details entered in Firestore.")
 
-def update_parking_status(rfid):
+def update_exiting_vehicle(rfid):
     # Update the parking status to "completed" in Firestore
-    rfid_collection = db.collection('parking_info')
-    rfid_doc_ref = rfid_collection.document(rfid)
-
-    rfid_doc_ref.update({
-        'status': 'completed',
-        'exit_time': firestore.SERVER_TIMESTAMP,
-        })
-    print("Parking status updated to 'completed' for RFID {}.".format(rfid))
-
+    parking_doc_ref = db.collection('parking_info').document('79yuoUXhcRdMJ32F3yyp').collection('vehicle_details')
+    query = parking_doc_ref.where('userid', '==', rfid).where('status', '==', 'incomplete')
+    # query = parking_doc_ref.where(
+    #     'userid', '==', rfid,
+    #     filter=('status', '==', 'incomplete')
+    # )
+    matching_docs = query.stream()
+    
+    if matching_docs:
+        print("Doc found")
+        try:
+            for doc in matching_docs:
+                # print("Doc" +doc)
+                doc.reference.update({
+                    'status': 'completed',
+                    'exit_time': firestore.SERVER_TIMESTAMP,
+                    })
+        except Exception as e:
+            print(f"Error updating document: {e}")
+        print("Parking status updated to 'completed' for RFID {}.".format(rfid))
+        occupied_slot_count_and_update()
+    else:
+        print("No data found")
 
 if __name__ == "__main__":
     try:
