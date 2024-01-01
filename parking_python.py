@@ -5,7 +5,8 @@ from firebase_admin import credentials, firestore
 
 # Initialize Firestore
 # db = firestore.Client.from_service_account_json('path/to/your/credentials.json')
-cred = credentials.Certificate("parkmandu-4e7f1-firebase-adminsdk-29t9t-0380fec4c2.json")
+# cred = credentials.Certificate("parkmandu-4e7f1-firebase-adminsdk-29t9t-0380fec4c2.json")
+cred = credentials.Certificate("e:/College/Final Project/Arduino code/parkmandu-4e7f1-firebase-adminsdk-29t9t-492b5e53a3.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -16,6 +17,7 @@ ser = serial.Serial('COM5', 9600)
 total_space = 3
 occupied_space = 0
 free_space = 0
+
 
 def process_data(data):
     
@@ -33,7 +35,7 @@ def process_data(data):
                 check_and_update_firestore(rfid)
             else:
                 print("Parking full")
-
+                displayMessage('Parking_full')
         elif status == "isExiting":
             update_exiting_vehicle(rfid)
         else:
@@ -42,7 +44,6 @@ def process_data(data):
         print("Invalid data format received from Arduino: {}".format(data))
 
 def check_and_update_firestore(rfid):
-    # Assuming you have a Firestore collection named 'rfid_cards'
     rfid_collection = db.collection('users')
 
     # Check if the RFID exists in Firestore
@@ -50,17 +51,31 @@ def check_and_update_firestore(rfid):
 
     if rfid_doc.exists:
         # RFID exists, perform actions
-        open_gate()
+        # open_gate('OPEN_GATE')
         # increase_occupied_slot()
+        # send_message_to_arduino('O')
+        open_gate();
         vehicle_entry(rfid)
         occupied_slot_count_and_update()
         print("RFID {} is registered. Access granted.".format(rfid))
     else:
+        # send_message_to_arduino('N')
+        displayMessage('Not_registered');
         print("RFID {} not registered in Firestore. Access denied.".format(rfid))
 
+# def send_message_to_arduino(message):
+#     # Send the message to Arduino
+#     ser.write(b'message')
+#     # ser.write(f"{message}\n".encode())
+        
+def displayMessage(message):
+    if(message == 'Not_registered'):
+        ser.write(b'N')
+    elif(message == 'Parking_full'):
+        ser.write(b'F')
 def open_gate():
-    # Implement your code to control the servo motor and open the gate
-    print("Opening gate...")
+    print("Opening gate")
+    ser.write(b'O')
 
 def occupied_slot_count_and_update():
     # Variables
@@ -85,7 +100,6 @@ def occupied_slot_count_and_update():
 
 
 def vehicle_entry(rfid):
-    # Assuming you have a Firestore collection for vehicle details
     # parking_info = db.collection('parking_info')
     parking_info = db.collection('parking_info').document('79yuoUXhcRdMJ32F3yyp').collection('vehicle_details')
 
