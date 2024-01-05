@@ -57,20 +57,6 @@ void loop() {
         // String receivedString = Serial.readStringUntil('\n');
         processPythonData(receivedChar);
       }
-      //Check for data from python
-      // if (Serial.available() > 0) {
-      //   displayMessage("Received");
-      //   char receivedChar = Serial.read();
-      //   if (receivedChar == 'O') {
-      //   //  processPythonCommand();
-      //   openGate();
-      //    displayMessage("Process");
-      //   } else{
-      //     displayMessage("Error Processing");
-      //   }
-      // } else{
-      //   displayMessage("Not received");
-      // }
       
     }
   }
@@ -84,6 +70,13 @@ void loop() {
       // Send RFID data and status to Python over Serial
       Serial.println(rfid + ",isExiting");
         delay(2000);  // Add a delay to avoid reading the same card multiple times
+        
+        if (Serial.available() > 0){
+        // displayMessage("Received");
+        char receivedChar = Serial.read();
+        // String receivedString = Serial.readStringUntil('\n');
+        processPythonData(receivedChar);
+      }
     }
   }
 
@@ -107,22 +100,26 @@ void processPythonCommand() {
     // Check if the IR sensor detects a vehicle (you can replace this with your own logic)
     displayMessage("Access Granted");
     openGate();
+    delay(3000);
+    closeGate();
   } else{
     displayMessage("Access Denied");
   }
 }
 
 void openGate() {
-  gateServo.write(90);  // Adjust the angle based on your setup
-  delay(2000);          // Keep the gate open for 5 seconds
-  gateServo.write(0);   // Close the gate
+  gateServo.write(180);  // Adjust the angle based on your setup
+}
+
+void closeGate(){
+  gateServo.write(90); // Close Gate
 }
 
 void displayMessage(String message) {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(message);
-  delay(2000);
+  delay(5000);
 }
 
 void displaySlotsStatus(int status3, int status4, int status5) {

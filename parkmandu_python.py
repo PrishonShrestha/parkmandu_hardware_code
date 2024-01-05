@@ -4,13 +4,10 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 # Initialize Firestore
-# db = firestore.Client.from_service_account_json('path/to/your/credentials.json')
-# cred = credentials.Certificate("parkmandu-4e7f1-firebase-adminsdk-29t9t-0380fec4c2.json")
 cred = credentials.Certificate("e:/College/Final Project/Arduino code/parkmandu-4e7f1-firebase-adminsdk-29t9t-492b5e53a3.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Adjust the port accordingly
 ser = serial.Serial('COM5', 9600)
 
 # Variables
@@ -28,9 +25,9 @@ def process_data(data):
     if len(parts) >=2:
         rfid = parts[0]
         status = parts[1]
-        print(rfid),
 
         if status == "isEntering":
+            print("Card detected: "+rfid),
             if occupied_space < total_space :
                 check_and_update_firestore(rfid)
             else:
@@ -50,11 +47,7 @@ def check_and_update_firestore(rfid):
     rfid_doc = rfid_collection.document(rfid).get()
 
     if rfid_doc.exists:
-        # RFID exists, perform actions
-        # open_gate('OPEN_GATE')
-        # increase_occupied_slot()
-        # send_message_to_arduino('O')
-        open_gate();
+        open_gate()
         vehicle_entry(rfid)
         occupied_slot_count_and_update()
         print("RFID {} is registered. Access granted.".format(rfid))
@@ -62,11 +55,6 @@ def check_and_update_firestore(rfid):
         # send_message_to_arduino('N')
         displayMessage('Not_registered');
         print("RFID {} not registered in Firestore. Access denied.".format(rfid))
-
-# def send_message_to_arduino(message):
-#     # Send the message to Arduino
-#     ser.write(b'message')
-#     # ser.write(f"{message}\n".encode())
         
 def displayMessage(message):
     if(message == 'Not_registered'):
@@ -82,7 +70,6 @@ def occupied_slot_count_and_update():
     global total_space
     global occupied_space
     global free_space
-    # slot_ref = db.collection('parking_info').document('79yuoUXhcRdMJ32F3yyp').collection('vehicle_details').where('status', '==', 'incomplete').stream()
     slot_ref = db.collection('parking_history').where('status', '==', 'incomplete').stream()
 
     # Count the number of matching documents
@@ -102,8 +89,6 @@ def occupied_slot_count_and_update():
 
 
 def vehicle_entry(rfid):
-    # parking_info = db.collection('parking_info')
-    # parking_info = db.collection('parking_info').document('79yuoUXhcRdMJ32F3yyp').collection('vehicle_details')
     parking_history = db.collection('parking_history')
 
     # Add a document with vehicle details
@@ -113,19 +98,14 @@ def vehicle_entry(rfid):
         'parkingName' : 'PCPS parking',
         'entry_time': firestore.SERVER_TIMESTAMP,
         'status': 'incomplete',
-        # Add other details as needed
     })
     print("Vehicle details entered in Firestore.")
 
 def update_exiting_vehicle(rfid):
     # Update the parking status to "completed" in Firestore
-    # parking_doc_ref = db.collection('parking_info').document('79yuoUXhcRdMJ32F3yyp').collection('vehicle_details')
     parking_doc_ref = db.collection('parking_history')
     query = parking_doc_ref.where('userid', '==', rfid).where('status', '==', 'incomplete').where('userid', '==', rfid,)
-    # query = parking_doc_ref.where(
-    #     'userid', '==', rfid,
-    #     filter=('status', '==', 'incomplete')
-    # )
+
     matching_docs = query.stream()
     
     if matching_docs:
@@ -141,6 +121,7 @@ def update_exiting_vehicle(rfid):
             print(f"Error updating document: {e}")
         print("Parking status updated to 'completed' for RFID {}.".format(rfid))
         occupied_slot_count_and_update()
+        open_gate()
     else:
         print("No data found")
 
